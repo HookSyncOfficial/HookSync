@@ -1,16 +1,5 @@
--- FULL SCRIPT - Copy and paste this entire thing
-
--- CONFIG SECTION - Edit your flags here
-getgenv().fast_flags = {
-    DebugDisplayFPS = true,
-    DebugDisplayMemory = true,
-    DebugDisplayTime = false,
-}
--- END OF CONFIG
-
--- Demstrap Style FFlag Injector
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "DemstrapUI"
+screenGui.Name = "Demstrap"
 screenGui.Parent = game:GetService("CoreGui")
 
 local mainFrame = Instance.new("Frame")
