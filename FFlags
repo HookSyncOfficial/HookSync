@@ -594,45 +594,6 @@ addButton.MouseButton1Click:Connect(function()
     fadeInRow(rowData.row, 0.3)
 end)
 
-local function injectViaSetFFlag(name, value)
-    setfflag(name, value)
-    return true
-end
-
-local function injectViaUserSettingsFlags(name, value)
-    local Settings = game:GetService("UserSettings")
-    if Settings and Settings.Flags then
-        Settings.Flags[name] = value
-    end
-    return true
-end
-
-local function injectViaUserSettingsSetFlag(name, value)
-    local UserSettings = game:GetService("UserSettings")
-    if UserSettings and UserSettings.SetFlag then
-        UserSettings:SetFlag(name, value)
-    end
-    return true
-end
-
-local function injectViaSettingsService(name, value)
-    local Settings = game:GetService("Settings")
-    if Settings and Settings.Flags then
-        Settings.Flags[name] = value
-    end
-    return true
-end
-
-local function injectViaMemory(name, value)
-    if sethiddenproperty then
-        sethiddenproperty(game, name, value)
-    end
-    if setfflag then
-        setfflag(name, value)
-    end
-    return true
-end
-
 local function applyFlags()
     local rows = flagList:GetChildren()
     local validRows = {}
@@ -674,11 +635,40 @@ local function applyFlags()
                     stringValue = value
                 end
                 
-                injectViaSetFFlag(cleanName, stringValue)
-                injectViaUserSettingsFlags(cleanName, stringValue)
-                injectViaUserSettingsSetFlag(cleanName, stringValue)
-                injectViaSettingsService(cleanName, stringValue)
-                injectViaMemory(cleanName, stringValue)
+                -- Try all injection methods directly without pcall
+                xpcall(function()
+                    setfflag(cleanName, stringValue)
+                end, function() end)
+                
+                xpcall(function()
+                    local Settings = game:GetService("UserSettings")
+                    if Settings and Settings.Flags then
+                        Settings.Flags[cleanName] = stringValue
+                    end
+                end, function() end)
+                
+                xpcall(function()
+                    local UserSettings = game:GetService("UserSettings")
+                    if UserSettings and UserSettings.SetFlag then
+                        UserSettings:SetFlag(cleanName, stringValue)
+                    end
+                end, function() end)
+                
+                xpcall(function()
+                    local Settings = game:GetService("Settings")
+                    if Settings and Settings.Flags then
+                        Settings.Flags[cleanName] = stringValue
+                    end
+                end, function() end)
+                
+                xpcall(function()
+                    if sethiddenproperty then
+                        sethiddenproperty(game, cleanName, stringValue)
+                    end
+                    if setfflag then
+                        setfflag(cleanName, stringValue)
+                    end
+                end, function() end)
             end
         end
     end
