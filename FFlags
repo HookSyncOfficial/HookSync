@@ -601,25 +601,35 @@ end
 
 local function injectViaUserSettingsFlags(name, value)
     local Settings = game:GetService("UserSettings")
-    if Settings and Settings.Flags then Settings.Flags[name] = value end
+    if Settings and Settings.Flags then
+        Settings.Flags[name] = value
+    end
     return true
 end
 
 local function injectViaUserSettingsSetFlag(name, value)
     local UserSettings = game:GetService("UserSettings")
-    if UserSettings and UserSettings.SetFlag then UserSettings:SetFlag(name, value) end
+    if UserSettings and UserSettings.SetFlag then
+        UserSettings:SetFlag(name, value)
+    end
     return true
 end
 
 local function injectViaSettingsService(name, value)
     local Settings = game:GetService("Settings")
-    if Settings and Settings.Flags then Settings.Flags[name] = value end
+    if Settings and Settings.Flags then
+        Settings.Flags[name] = value
+    end
     return true
 end
 
 local function injectViaMemory(name, value)
-    if sethiddenproperty then sethiddenproperty(game, name, value) end
-    if setfflag then setfflag(name, value) end
+    if sethiddenproperty then
+        sethiddenproperty(game, name, value)
+    end
+    if setfflag then
+        setfflag(name, value)
+    end
     return true
 end
 
@@ -645,7 +655,7 @@ local function applyFlags()
             local value = valueBox.Text:match("^%s*(.-)%s*$")
             local type = typeBtn.Text
             
-            if name and name ~= "" then
+            if name and name ~= "" and value then
                 local cleanName = name
                 local prefixes = {"FFlag", "FInt", "FLog", "FString", "DFFlag", "DFInt", "DFLog", "DFString"}
                 for _, prefix in pairs(prefixes) do
