@@ -1,5 +1,110 @@
+
+getgenv().fast_flags = getgenv().fast_flags or {}
+
+local function syncFlagsToGlobal()
+    local rows = flagList:GetChildren()
+    local flagTable = {}
+    for _, row in pairs(rows) do
+        if row:IsA("Frame") then
+            local nameBox = row:FindFirstChild("TextBox")
+            local typeBtn = row:FindFirstChild("TextButton")
+            local valueBox = row:FindFirstChild("TextBox", true)
+            if nameBox and typeBtn and valueBox then
+                local name = nameBox.Text:match("^%s*(.-)%s*$")
+                local value = valueBox.Text:match("^%s*(.-)%s*$")
+                local type = typeBtn.Text
+                if name and name ~= "" and value then
+                    if type == "Bool" then
+                        flagTable[name] = value:lower() == "true"
+                    elseif type == "Int" then
+                        flagTable[name] = tonumber(value) or 0
+                    else
+                        flagTable[name] = value
+                    end
+                end
+            end
+        end
+    end
+    getgenv().fast_flags = flagTable
+end
+
+local function injectViaSetFFlag(name, value)
+    setfflag(name, value)
+    return true
+end
+
+local function injectViaUserSettingsFlags(name, value)
+    local Settings = game:GetService("UserSettings")
+    if Settings and Settings.Flags then
+        Settings.Flags[name] = value
+    end
+    return true
+end
+
+local function injectViaUserSettingsSetFlag(name, value)
+    local UserSettings = game:GetService("UserSettings")
+    if UserSettings and UserSettings.SetFlag then
+        UserSettings:SetFlag(name, value)
+    end
+    return true
+end
+
+local function injectViaSettingsService(name, value)
+    local Settings = game:GetService("Settings")
+    if Settings and Settings.Flags then
+        Settings.Flags[name] = value
+    end
+    return true
+end
+
+local function injectViaMemory(name, value)
+    if sethiddenproperty then
+        sethiddenproperty(game, name, value)
+    end
+    if setfflag then
+        setfflag(name, value)
+    end
+    return true
+end
+
+local function apply_flags(flags)
+    if type(flags) ~= "table" then
+        return
+    end
+    
+    for name, value in pairs(flags) do
+        local cleanName = name
+        local prefixes = {"FFlag", "FInt", "FLog", "FString", "DFFlag", "DFInt", "DFLog", "DFString"}
+        
+        for _, prefix in pairs(prefixes) do
+            if string.sub(name, 1, #prefix) == prefix then
+                cleanName = string.sub(name, #prefix + 1)
+                break
+            end
+        end
+        
+        local stringValue
+        if type(value) == "boolean" then
+            stringValue = value and "True" or "False"
+        else
+            stringValue = tostring(value)
+        end
+        
+        injectViaSetFFlag(cleanName, stringValue)
+        injectViaUserSettingsFlags(cleanName, stringValue)
+        injectViaUserSettingsSetFlag(cleanName, stringValue)
+        injectViaSettingsService(cleanName, stringValue)
+        injectViaMemory(cleanName, stringValue)
+    end
+end
+
+local function rejoin()
+    local teleportService = game:GetService("TeleportService")
+    teleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, game:GetService("Players").LocalPlayer)
+end
+
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "Demstrap"
+screenGui.Name = "DemstrapUI"
 screenGui.Parent = game:GetService("CoreGui")
 
 local mainFrame = Instance.new("Frame")
@@ -424,6 +529,9 @@ local function loadFlagsFromTable(flagTable)
     end
     
     updateFlagListHeight()
+    
+    -- Sync flags to getgenv
+    syncFlagsToGlobal()
 end
 
 local function addFlagsFromPreset(presetTable)
@@ -461,6 +569,8 @@ local function addFlagsFromPreset(presetTable)
             fadeInRow(row, 0.2)
         end
     end
+    
+    syncFlagsToGlobal()
 end
 
 local function createPresetRow(presetName, presetTable)
@@ -562,10 +672,10 @@ local injectButton = Instance.new("TextButton")
 injectButton.Size = UDim2.new(0.32, 0, 0, 35)
 injectButton.Position = UDim2.new(0.34, 0, 0, 0)
 injectButton.BackgroundColor3 = Color3.fromRGB(255, 120, 0)
-injectButton.Text = "Inject"
+injectButton.Text = "Inject & Rejoin"
 injectButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 injectButton.Font = Enum.Font.GothamBold
-injectButton.TextSize = 12
+injectButton.TextSize = 11
 injectButton.BorderSizePixel = 0
 injectButton.Parent = buttonContainer
 
@@ -592,105 +702,15 @@ addButton.MouseButton1Click:Connect(function()
     local rowData = createFlagRow("NewFlag", "true", "Bool", true)
     updateFlagListHeight()
     fadeInRow(rowData.row, 0.3)
+    syncFlagsToGlobal()
 end)
 
--- WORKING INJECTION METHODS (from your working script)
-local function injectViaSetFFlag(name, value)
-    setfflag(name, value)
-    return true
-end
-
-local function injectViaUserSettingsFlags(name, value)
-    local Settings = game:GetService("UserSettings")
-    if Settings and Settings.Flags then
-        Settings.Flags[name] = value
-    end
-    return true
-end
-
-local function injectViaUserSettingsSetFlag(name, value)
-    local UserSettings = game:GetService("UserSettings")
-    if UserSettings and UserSettings.SetFlag then
-        UserSettings:SetFlag(name, value)
-    end
-    return true
-end
-
-local function injectViaSettingsService(name, value)
-    local Settings = game:GetService("Settings")
-    if Settings and Settings.Flags then
-        Settings.Flags[name] = value
-    end
-    return true
-end
-
-local function injectViaMemory(name, value)
-    if sethiddenproperty then
-        sethiddenproperty(game, name, value)
-    end
-    if setfflag then
-        setfflag(name, value)
-    end
-    return true
-end
-
-local function applyFlags()
-    local rows = flagList:GetChildren()
-    local validRows = {}
-    for _, row in pairs(rows) do
-        if row:IsA("Frame") then
-            table.insert(validRows, row)
-        end
-    end
-    
-    if #validRows == 0 then
-        return false
-    end
-    
-    for _, row in pairs(validRows) do
-        local nameBox = row:FindFirstChild("TextBox")
-        local typeBtn = row:FindFirstChild("TextButton")
-        local valueBox = row:FindFirstChild("TextBox", true)
-        if nameBox and typeBtn and valueBox then
-            local name = nameBox.Text:match("^%s*(.-)%s*$")
-            local value = valueBox.Text:match("^%s*(.-)%s*$")
-            local type = typeBtn.Text
-            
-            if name and name ~= "" and value then
-                local cleanName = name
-                local prefixes = {"FFlag", "FInt", "FLog", "FString", "DFFlag", "DFInt", "DFLog", "DFString"}
-                for _, prefix in pairs(prefixes) do
-                    if string.sub(name, 1, #prefix) == prefix then
-                        cleanName = string.sub(name, #prefix + 1)
-                        break
-                    end
-                end
-                
-                local stringValue
-                if type == "Bool" then
-                    stringValue = (value:lower() == "true") and "True" or "False"
-                elseif type == "Int" then
-                    stringValue = tostring(tonumber(value) or 0)
-                else
-                    stringValue = value
-                end
-                
-                injectViaSetFFlag(cleanName, stringValue)
-                injectViaUserSettingsFlags(cleanName, stringValue)
-                injectViaUserSettingsSetFlag(cleanName, stringValue)
-                injectViaSettingsService(cleanName, stringValue)
-                injectViaMemory(cleanName, stringValue)
-            end
-        end
-    end
-    
-    return true
-end
-
-local function rejoin()
-    local teleportService = game:GetService("TeleportService")
-    teleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, game:GetService("Players").LocalPlayer)
-end
+injectButton.MouseButton1Click:Connect(function()
+    syncFlagsToGlobal()
+    apply_flags(getgenv().fast_flags)
+    task.wait(0.1)
+    rejoin()
+end)
 
 local function removeAllFlags()
     local rows = flagList:GetChildren()
@@ -713,7 +733,12 @@ local function removeAllFlags()
     end
     
     flags = {}
+    getgenv().fast_flags = {}
 end
+
+removeAllButton.MouseButton1Click:Connect(function()
+    removeAllFlags()
+end)
 
 local currentTab = "flags"
 
@@ -740,21 +765,30 @@ presetsTabButton.MouseButton1Click:Connect(function()
     updateFlagListHeight()
 end)
 
-injectButton.MouseButton1Click:Connect(function()
-    if applyFlags() then
-        injectButton.BackgroundColor3 = Color3.fromRGB(180, 80, 0)
-        injectButton.Text = "INJECTING..."
-        task.wait(0.5)
-        rejoin()
-    end
-end)
-
-removeAllButton.MouseButton1Click:Connect(function()
-    removeAllFlags()
-end)
-
+-- Load existing flags from getgenv().fast_flags into UI
 if getgenv().fast_flags and type(getgenv().fast_flags) == "table" then
-    loadFlagsFromTable(getgenv().fast_flags)
+    for name, value in pairs(getgenv().fast_flags) do
+        local cleanName = name
+        local prefixes = {"FFlag", "FInt", "FLog", "FString", "DFFlag", "DFInt", "DFLog", "DFString"}
+        for _, prefix in pairs(prefixes) do
+            if string.sub(name, 1, #prefix) == prefix then
+                cleanName = string.sub(name, #prefix + 1)
+                break
+            end
+        end
+        
+        local flagType
+        if type(value) == "boolean" then
+            flagType = "Bool"
+        elseif type(value) == "number" then
+            flagType = "Int"
+        else
+            flagType = "String"
+        end
+        
+        createFlagRow(cleanName, value, flagType, false)
+    end
+    updateFlagListHeight()
 end
 
 updateFlagListHeight()
@@ -764,10 +798,13 @@ return {
         local rowData = createFlagRow(name, value, type or "Bool", true)
         updateFlagListHeight()
         fadeInRow(rowData.row, 0.3)
+        syncFlagsToGlobal()
     end,
-    inject = applyFlags,
-    rejoin = rejoin,
+    inject = function()
+        syncFlagsToGlobal()
+        apply_flags(getgenv().fast_flags)
+        task.wait(0.1)
+        rejoin()
+    end,
     removeAll = removeAllFlags,
-    loadFromTable = loadFlagsFromTable,
-    addPreset = addFlagsFromPreset
 }
