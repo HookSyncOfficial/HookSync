@@ -1,5 +1,16 @@
+-- FULL SCRIPT - Copy and paste this entire thing
+
+-- CONFIG SECTION - Edit your flags here
+getgenv().fast_flags = {
+    DebugDisplayFPS = true,
+    DebugDisplayMemory = true,
+    DebugDisplayTime = false,
+}
+-- END OF CONFIG
+
+-- Demstrap Style FFlag Injector
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "Demstrap"
+screenGui.Name = "DemstrapUI"
 screenGui.Parent = game:GetService("CoreGui")
 
 local mainFrame = Instance.new("Frame")
@@ -635,40 +646,26 @@ local function applyFlags()
                     stringValue = value
                 end
                 
-                -- Try all injection methods directly without pcall
-                xpcall(function()
-                    setfflag(cleanName, stringValue)
-                end, function() end)
+                setfflag(cleanName, stringValue)
                 
-                xpcall(function()
-                    local Settings = game:GetService("UserSettings")
-                    if Settings and Settings.Flags then
-                        Settings.Flags[cleanName] = stringValue
-                    end
-                end, function() end)
+                local Settings = game:GetService("UserSettings")
+                if Settings and Settings.Flags then
+                    Settings.Flags[cleanName] = stringValue
+                end
                 
-                xpcall(function()
-                    local UserSettings = game:GetService("UserSettings")
-                    if UserSettings and UserSettings.SetFlag then
-                        UserSettings:SetFlag(cleanName, stringValue)
-                    end
-                end, function() end)
+                local UserSettings = game:GetService("UserSettings")
+                if UserSettings and UserSettings.SetFlag then
+                    UserSettings:SetFlag(cleanName, stringValue)
+                end
                 
-                xpcall(function()
-                    local Settings = game:GetService("Settings")
-                    if Settings and Settings.Flags then
-                        Settings.Flags[cleanName] = stringValue
-                    end
-                end, function() end)
+                local Settings2 = game:GetService("Settings")
+                if Settings2 and Settings2.Flags then
+                    Settings2.Flags[cleanName] = stringValue
+                end
                 
-                xpcall(function()
-                    if sethiddenproperty then
-                        sethiddenproperty(game, cleanName, stringValue)
-                    end
-                    if setfflag then
-                        setfflag(cleanName, stringValue)
-                    end
-                end, function() end)
+                if sethiddenproperty then
+                    sethiddenproperty(game, cleanName, stringValue)
+                end
             end
         end
     end
