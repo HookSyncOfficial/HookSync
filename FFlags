@@ -594,6 +594,46 @@ addButton.MouseButton1Click:Connect(function()
     fadeInRow(rowData.row, 0.3)
 end)
 
+-- WORKING INJECTION METHODS (from your working script)
+local function injectViaSetFFlag(name, value)
+    setfflag(name, value)
+    return true
+end
+
+local function injectViaUserSettingsFlags(name, value)
+    local Settings = game:GetService("UserSettings")
+    if Settings and Settings.Flags then
+        Settings.Flags[name] = value
+    end
+    return true
+end
+
+local function injectViaUserSettingsSetFlag(name, value)
+    local UserSettings = game:GetService("UserSettings")
+    if UserSettings and UserSettings.SetFlag then
+        UserSettings:SetFlag(name, value)
+    end
+    return true
+end
+
+local function injectViaSettingsService(name, value)
+    local Settings = game:GetService("Settings")
+    if Settings and Settings.Flags then
+        Settings.Flags[name] = value
+    end
+    return true
+end
+
+local function injectViaMemory(name, value)
+    if sethiddenproperty then
+        sethiddenproperty(game, name, value)
+    end
+    if setfflag then
+        setfflag(name, value)
+    end
+    return true
+end
+
 local function applyFlags()
     local rows = flagList:GetChildren()
     local validRows = {}
@@ -635,26 +675,11 @@ local function applyFlags()
                     stringValue = value
                 end
                 
-                setfflag(cleanName, stringValue)
-                
-                local Settings = game:GetService("UserSettings")
-                if Settings and Settings.Flags then
-                    Settings.Flags[cleanName] = stringValue
-                end
-                
-                local UserSettings = game:GetService("UserSettings")
-                if UserSettings and UserSettings.SetFlag then
-                    UserSettings:SetFlag(cleanName, stringValue)
-                end
-                
-                local Settings2 = game:GetService("Settings")
-                if Settings2 and Settings2.Flags then
-                    Settings2.Flags[cleanName] = stringValue
-                end
-                
-                if sethiddenproperty then
-                    sethiddenproperty(game, cleanName, stringValue)
-                end
+                injectViaSetFFlag(cleanName, stringValue)
+                injectViaUserSettingsFlags(cleanName, stringValue)
+                injectViaUserSettingsSetFlag(cleanName, stringValue)
+                injectViaSettingsService(cleanName, stringValue)
+                injectViaMemory(cleanName, stringValue)
             end
         end
     end
